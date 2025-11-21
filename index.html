@@ -329,6 +329,17 @@
             transform: scale(0.95);
         }
 
+        #send-btn.listening {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+        }
+
         .overlay {
             position: fixed;
             top: 0;
@@ -633,6 +644,85 @@
 
         // Variabelen
         let learnMode = false;
+        let isListening = false;
+        let recognition = null;
+
+        // Spraakfunctie initialiseren
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'nl-NL';
+                
+                recognition.onstart = function() {
+                    isListening = true;
+                    updateSendButton();
+                };
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    userInput.value = transcript;
+                    isListening = false;
+                    updateSendButton();
+                    
+                    // Automatisch verzenden na spraakinvoer
+                    setTimeout(() => {
+                        handleUserInput();
+                    }, 500);
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('Spraakherkenning fout:', event.error);
+                    isListening = false;
+                    updateSendButton();
+                    
+                    if (event.error === 'not-allowed') {
+                        addBotMessage("Spraakherkenning is niet toegestaan. Controleer je browserinstellingen.", "tip");
+                    }
+                };
+                
+                recognition.onend = function() {
+                    isListening = false;
+                    updateSendButton();
+                };
+            } else {
+                console.warn('Spraakherkenning wordt niet ondersteund in deze browser');
+                addBotMessage("Spraakherkenning wordt niet ondersteund in deze browser.", "tip");
+            }
+        }
+        
+        // Spraakherkenning starten/stoppen
+        function toggleSpeechRecognition() {
+            if (!recognition) {
+                initializeSpeechRecognition();
+            }
+            
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+        
+        // Update de send button op basis van de status
+        function updateSendButton() {
+            if (userInput.value.trim() === '') {
+                // Als er geen tekst is, toon microfoon
+                if (isListening) {
+                    sendBtn.innerHTML = '⏹';
+                    sendBtn.classList.add('listening');
+                } else {
+                    sendBtn.innerHTML = '🎤';
+                    sendBtn.classList.remove('listening');
+                }
+            } else {
+                // Als er tekst is, toon pijl
+                sendBtn.innerHTML = '➤';
+                sendBtn.classList.remove('listening');
+            }
+        }
 
         // Spraak functie
         function speakText(text) {
@@ -792,6 +882,12 @@
             
             updateMemoryList();
             updateAnalysisButton();
+            
+            // Initialiseer spraakherkenning
+            initializeSpeechRecognition();
+            
+            // Update de send button bij het laden
+            updateSendButton();
         };
 
         // Functie om een bericht van de gebruiker toe te voegen
@@ -943,6 +1039,7 @@
                 addBotMessage("Gebruik: leer [vraag] = [antwoord] om me iets nieuws te leren!", "tip");
             }
             userInput.value = "";
+            updateSendButton();
         }
 
         // Update geheugenlijst
@@ -980,7 +1077,10 @@
 
         // Event listeners
         sendBtn.addEventListener('click', function() {
-            if (learnMode && userInput.value.toLowerCase().startsWith('leer ')) {
+            if (userInput.value.trim() === '' && !isListening) {
+                // Start spraakherkenning als er geen tekst is
+                toggleSpeechRecognition();
+            } else if (learnMode && userInput.value.toLowerCase().startsWith('leer ')) {
                 handleLearnInput(userInput.value);
             } else {
                 handleUserInput();
@@ -995,6 +1095,11 @@
                     handleUserInput();
                 }
             }
+        });
+        
+        // Update de send button wanneer de invoer verandert
+        userInput.addEventListener('input', function() {
+            updateSendButton();
         });
         
         learnModeBtn.addEventListener('click', function() {
@@ -1045,6 +1150,7 @@
                 
                 userInput.value = "";
                 userInput.focus();
+                updateSendButton();
                 
                 saveBotData();
             }, 1500 + Math.random() * 2000);
