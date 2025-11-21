@@ -1,1 +1,618 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combot - Spraakmodus</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .microphone {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #4a6cf7, #7a52d4);
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 15px 35px rgba(74, 108, 247, 0.4);
+            border: none;
+            outline: none;
+            position: relative;
+        }
+
+        .microphone:hover {
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px rgba(74, 108, 247, 0.6);
+        }
+
+        .microphone:active {
+            transform: scale(0.95);
+        }
+
+        .microphone.off {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            box-shadow: 0 15px 35px rgba(108, 117, 125, 0.4);
+        }
+
+        .microphone.listening {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 15px 35px rgba(255, 107, 107, 0.6);
+        }
+
+        .microphone.processing {
+            background: linear-gradient(135deg, #ffa726, #ff9800);
+            animation: processing 2s infinite;
+            box-shadow: 0 15px 35px rgba(255, 167, 38, 0.6);
+        }
+
+        .noise-filter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .noise-filter.active {
+            background: rgba(76, 175, 80, 0.8);
+            animation: filterPulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); 
+            }
+            50% { 
+                transform: scale(1.05);
+            }
+            100% { 
+                transform: scale(1);
+                box-shadow: 0 0 0 20px rgba(255, 107, 107, 0); 
+            }
+        }
+
+        @keyframes processing {
+            0% { 
+                background: linear-gradient(135deg, #ffa726, #ff9800);
+            }
+            50% { 
+                background: linear-gradient(135deg, #ffb74d, #ffa726);
+            }
+            100% { 
+                background: linear-gradient(135deg, #ffa726, #ff9800);
+            }
+        }
+
+        @keyframes filterPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .volume-indicator {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .volume-level {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .noise-threshold {
+            position: absolute;
+            top: 0;
+            left: 30%;
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .sensitivity-control {
+            width: 100%;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .sensitivity-label {
+            color: white;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .sensitivity-slider {
+            width: 120px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .sensitivity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="microphone" id="microphone">
+            🎤
+            <div class="noise-filter" id="noiseFilter">🔇</div>
+        </button>
+        
+        <div class="volume-indicator">
+            <div class="noise-threshold"></div>
+            <div class="volume-level" id="volume-level"></div>
+        </div>
+
+        <div class="sensitivity-control">
+            <span class="sensitivity-label">💬</span>
+            <input type="range" min="1" max="10" value="6" class="sensitivity-slider" id="sensitivitySlider">
+            <span class="sensitivity-label">🔊</span>
+        </div>
+        
+        <button class="back-btn" onclick="window.location.href='index.html'">
+            ←
+        </button>
+    </div>
+
+    <script>
+        // Elementen
+        const microphone = document.getElementById('microphone');
+        const volumeLevel = document.getElementById('volume-level');
+        const noiseFilter = document.getElementById('noiseFilter');
+        const sensitivitySlider = document.getElementById('sensitivitySlider');
+        
+        // Variabelen voor ruisonderdrukking
+        let isListening = false;
+        let isProcessing = false;
+        let isSpeaking = false;
+        let recognition = null;
+        let audioContext = null;
+        let analyser = null;
+        let microphoneSource = null;
+        let javascriptNode = null;
+        let noiseFilterActive = true;
+        let sensitivity = 6; // Standaard gevoeligheid
+        let noiseThreshold = 0.3; // Drempelwaarde voor ruis
+        let silenceCounter = 0;
+        let speechBuffer = [];
+        let lastSpeechTime = 0;
+        
+        // Spraakherkenning initialiseren met ruisonderdrukking
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'nl-NL';
+                
+                // Verbeterde instellingen voor ruisonderdrukking
+                if (recognition.hasOwnProperty('maxAlternatives')) {
+                    recognition.maxAlternatives = 1;
+                }
+                
+                recognition.onstart = function() {
+                    isListening = true;
+                    updateMicrophoneUI();
+                    noiseFilter.classList.add('active');
+                };
+                
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let hasValidSpeech = false;
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        const transcript = result[0].transcript;
+                        const confidence = result[0].confidence;
+                        
+                        // Ruisonderdrukking: negeer lage confidence resultaten
+                        if (result.isFinal && confidence > 0.6) {
+                            finalTranscript += transcript;
+                            hasValidSpeech = true;
+                        }
+                    }
+                    
+                    // Update laatste spraaktijd bij geldige spraak
+                    if (hasValidSpeech) {
+                        lastSpeechTime = Date.now();
+                        silenceCounter = 0;
+                    }
+                    
+                    // Alleen verwerken als er betekenisvolle spraak is
+                    if (finalTranscript.trim() && !isProcessing && !isSpeaking && hasValidSpeech) {
+                        processSpeechInput(finalTranscript);
+                    }
+                };
+                
+                recognition.onerror = function(event) {
+                    if (event.error === 'not-allowed') {
+                        toggleMicrophone();
+                    } else if (event.error !== 'no-speech') {
+                        setTimeout(() => {
+                            if (isListening && recognition) {
+                                recognition.start();
+                            }
+                        }, 1000);
+                    }
+                };
+                
+                recognition.onend = function() {
+                    isListening = false;
+                    noiseFilter.classList.remove('active');
+                    
+                    if (!microphone.classList.contains('off')) {
+                        setTimeout(() => {
+                            if (!isProcessing && !isSpeaking && recognition) {
+                                recognition.start();
+                            }
+                        }, 500);
+                    }
+                };
+                
+                recognition.start();
+                
+            } else {
+                microphone.classList.add('off');
+                microphone.innerHTML = '❌';
+            }
+        }
+        
+        // Geavanceerde audio analyse met ruisonderdrukking
+        function initializeAudioAnalysis() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const constraints = {
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 16000,
+                        channelCount: 1
+                    },
+                    video: false
+                };
+                
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(function(stream) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        analyser = audioContext.createAnalyser();
+                        
+                        // Audio processing voor betere ruisonderdrukking
+                        const source = audioContext.createMediaStreamSource(stream);
+                        
+                        // Low-pass filter voor ruisreductie
+                        const lowPassFilter = audioContext.createBiquadFilter();
+                        lowPassFilter.type = "lowpass";
+                        lowPassFilter.frequency.value = 4000;
+                        
+                        // High-pass filter voor laagfrequente ruis
+                        const highPassFilter = audioContext.createBiquadFilter();
+                        highPassFilter.type = "highpass";
+                        highPassFilter.frequency.value = 80;
+                        
+                        // Verbind filters
+                        source.connect(highPassFilter);
+                        highPassFilter.connect(lowPassFilter);
+                        lowPassFilter.connect(analyser);
+                        
+                        // Analyser instellingen
+                        analyser.fftSize = 2048;
+                        analyser.smoothingTimeConstant = 0.8;
+                        
+                        javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+                        analyser.connect(javascriptNode);
+                        javascriptNode.connect(audioContext.destination);
+                        
+                        let noiseBaseline = 0;
+                        let calibrationSamples = 0;
+                        const maxCalibrationSamples = 100;
+                        
+                        javascriptNode.onaudioprocess = function() {
+                            const array = new Uint8Array(analyser.frequencyBinCount);
+                            analyser.getByteFrequencyData(array);
+                            
+                            // Bereken RMS (Root Mean Square) voor volume
+                            let sum = 0;
+                            for (let i = 0; i < array.length; i++) {
+                                sum += array[i] * array[i];
+                            }
+                            const rms = Math.sqrt(sum / array.length) / 255;
+                            
+                            // Kalibreer ruisniveau tijdens eerste samples
+                            if (calibrationSamples < maxCalibrationSamples) {
+                                noiseBaseline = (noiseBaseline * calibrationSamples + rms) / (calibrationSamples + 1);
+                                calibrationSamples++;
+                            }
+                            
+                            // Pas gevoeligheid toe op basis van slider
+                            const adjustedSensitivity = sensitivity / 10;
+                            const dynamicThreshold = noiseBaseline + (0.3 * adjustedSensitivity);
+                            
+                            // Filter ruis met dynamische drempel
+                            let filteredVolume = 0;
+                            if (rms > dynamicThreshold) {
+                                filteredVolume = (rms - dynamicThreshold) / (1 - dynamicThreshold);
+                                filteredVolume = Math.min(filteredVolume * (1 + adjustedSensitivity), 1);
+                            }
+                            
+                            // Update volume indicator met gefilterd volume
+                            const displayVolume = Math.min(filteredVolume * 100, 100);
+                            volumeLevel.style.width = displayVolume + '%';
+                            
+                            // Detectie van stilte voor automatische verwerking
+                            const currentTime = Date.now();
+                            if (filteredVolume > 0.1) {
+                                lastSpeechTime = currentTime;
+                                silenceCounter = 0;
+                            } else if (currentTime - lastSpeechTime > 1500 && speechBuffer.length > 0) {
+                                // Automatische verwerking na 1.5 seconde stilte
+                                silenceCounter++;
+                                if (silenceCounter > 3) {
+                                    const finalText = speechBuffer.join(' ');
+                                    if (finalText.trim().length > 2) {
+                                        processSpeechInput(finalText);
+                                    }
+                                    speechBuffer = [];
+                                    silenceCounter = 0;
+                                }
+                            }
+                        };
+                    })
+                    .catch(function(err) {
+                        console.error('Microfoon toegang fout:', err);
+                        noiseFilter.textContent = '❌';
+                    });
+            }
+        }
+        
+        // Microfoon UI updaten
+        function updateMicrophoneUI() {
+            microphone.classList.remove('off', 'listening', 'processing');
+            
+            if (isSpeaking) {
+                microphone.classList.add('listening');
+                microphone.innerHTML = '🔊';
+            } else if (isProcessing) {
+                microphone.classList.add('processing');
+                microphone.innerHTML = '⏳';
+            } else if (isListening) {
+                microphone.classList.add('listening');
+                microphone.innerHTML = '🎤';
+            } else {
+                microphone.classList.add('off');
+                microphone.innerHTML = '🎤';
+            }
+            
+            // Voeg noise filter indicator terug toe
+            microphone.innerHTML += '<div class="noise-filter" id="noiseFilter">🔇</div>';
+            if (isListening) {
+                noiseFilter.classList.add('active');
+            }
+        }
+        
+        // Spraak functie
+        function speakText(text) {
+            return new Promise((resolve) => {
+                if ('speechSynthesis' in window) {
+                    isSpeaking = true;
+                    updateMicrophoneUI();
+                    
+                    window.speechSynthesis.cancel();
+                    
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'nl-NL';
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.8;
+                    
+                    utterance.onend = function() {
+                        isSpeaking = false;
+                        updateMicrophoneUI();
+                        resolve();
+                    };
+                    
+                    utterance.onerror = function() {
+                        isSpeaking = false;
+                        updateMicrophoneUI();
+                        resolve();
+                    };
+                    
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    resolve();
+                }
+            });
+        }
+        
+        // Verwerk gesproken invoer met extra filtering
+        async function processSpeechInput(transcript) {
+            if (!transcript.trim() || isProcessing || isSpeaking) return;
+            
+            // Extra filtering voor korte/onduidelijke invoer
+            const cleanTranscript = transcript.trim();
+            if (cleanTranscript.length < 2) return;
+            
+            // Negeer veelvoorkomende ruis patronen
+            const noisePatterns = [/^eh+$/, /^uh+$/, /^ah+$/, /^oh+$/, /^\s+$/];
+            if (noisePatterns.some(pattern => pattern.test(cleanTranscript.toLowerCase()))) {
+                return;
+            }
+            
+            isProcessing = true;
+            updateMicrophoneUI();
+            
+            console.log("Verwerken: " + cleanTranscript);
+            
+            // Genereer AI antwoord
+            const response = await generateAIResponse(cleanTranscript);
+            
+            // Spreek antwoord uit
+            await speakText(response);
+            
+            // Terug naar luisteren
+            isProcessing = false;
+            updateMicrophoneUI();
+            
+            if (!isListening && recognition && !microphone.classList.contains('off')) {
+                setTimeout(() => {
+                    recognition.start();
+                }, 500);
+            }
+        }
+        
+        // Genereer AI antwoord
+        async function generateAIResponse(input) {
+            await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 800));
+            
+            const lowerInput = input.toLowerCase();
+            
+            if (lowerInput.includes('hallo') || lowerInput.includes('hoi') || lowerInput.includes('hey')) {
+                return "Hallo! Ik hoor je goed. Hoe kan ik helpen?";
+            } else if (lowerInput.includes('hoe gaat het')) {
+                return "Prima, dank je! De ruisonderdrukking werkt goed. En met jou?";
+            } else if (lowerInput.includes('wat kan je')) {
+                return "Ik luister naar je stem en filter achtergrondgeluid. Praat gewoon tegen me!";
+            } else if (lowerInput.includes('dankjewel') || lowerInput.includes('bedankt')) {
+                return "Graag gedaan! De microfoon staat klaar voor je volgende vraag.";
+            } else if (lowerInput.includes('stop') || lowerInput.includes('einde')) {
+                return "Tot ziens! Klik op de microfoon als je weer wilt praten.";
+            } else if (lowerInput.includes('ruis') || lowerInput.includes('filter')) {
+                return "De ruisonderdrukking is actief. Ik filter achtergrondgeluid voor betere herkenning.";
+            } else if (lowerInput.includes('microfoon')) {
+                return "De microfoon staat aan met geavanceerde ruisonderdrukking. Praat duidelijk voor beste resultaten.";
+            } else {
+                const randomResponses = [
+                    "Ik begrijp het. Kun je iets meer uitleg geven?",
+                    "Interessant! Wat bedoel je precies?",
+                    "Goed punt. Wil je hier meer over weten?",
+                    "Ik verwerk je vraag. Kun je het anders formuleren?",
+                    "Duidelijk. Is er iets specifieks dat je wilt vragen?"
+                ];
+                return randomResponses[Math.floor(Math.random() * randomResponses.length)];
+            }
+        }
+        
+        // Microfoon aan/uit zetten
+        function toggleMicrophone() {
+            if (microphone.classList.contains('off')) {
+                microphone.classList.remove('off');
+                initializeSpeechRecognition();
+                initializeAudioAnalysis();
+            } else {
+                microphone.classList.add('off');
+                isListening = false;
+                isProcessing = false;
+                
+                if (recognition) {
+                    recognition.stop();
+                }
+                
+                if (audioContext) {
+                    audioContext.close();
+                }
+                
+                window.speechSynthesis.cancel();
+                volumeLevel.style.width = '0%';
+                noiseFilter.classList.remove('active');
+            }
+        }
+        
+        // Gevoeligheid aanpassen
+        sensitivitySlider.addEventListener('input', function() {
+            sensitivity = parseInt(this.value);
+            // Update noise threshold indicator positie
+            document.querySelector('.noise-threshold').style.left = (30 + (sensitivity * 4)) + '%';
+        });
+        
+        // Microfoon klik event
+        microphone.addEventListener('click', toggleMicrophone);
+        
+        // Initialiseer bij laden
+        window.onload = function() {
+            initializeSpeechRecognition();
+            initializeAudioAnalysis();
+        };
+        
+        // Opruimen bij verlaten pagina
+        window.onbeforeunload = function() {
+            if (recognition) {
+                recognition.stop();
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+            window.speechSynthesis.cancel();
+        };
+    </script>
+</body>
+</html>
