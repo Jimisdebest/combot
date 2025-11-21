@@ -528,12 +528,12 @@
             // Standaard leerpatronen
             const defaultLearnedPatterns = {
                 begroeting: ["hallo", "hoi", "hey", "goedendag", "dag", "goedemorgen", "goedenmiddag", "goedenavond"],
-                boos: ["dommerd", "stommerd", "idioot", "sukkel", "lul", "boos", "klootzak", "stom", "kut"],
+                boos: ["dommerd", "stommerd", "idioot", "sukkel", "lul", "klootzak", "kut"],
                 compliment: ["mooi", "leuk", "geweldig", "fantastisch", "super", "knap", "slim", "grappig"],
                 tip: ["tip", "advies", "suggestie", "idee", "aanrader"],
                 grap: ["grap", "grappig", "lachen", "mop", "humor", "lach"],
                 verdrietig: ["verdrietig", "triest", "somber", "depri", "huilen", "zielig"],
-                vraag: ["waarom", "hoe", "wat", "wanneer", "wie", "?", "welke"],
+                vraag: ["waarom", "hoe", "wat", "wanneer", "wie", "welke"],
                 antwoord: ["omdat", "daarom", "dus", "want", "om"]
             };
             
@@ -611,7 +611,7 @@
                 updateAnalysisButton();
                 
                 // Toon een bevestiging
-                addBotMessage("Mijn geheugen is gewist! Ik begin opnieuw met leren.", "Info");
+                addBotMessage("Mijn geheugen is gewist! Ik begin opnieuw met leren.", "tip");
             });
         }
         
@@ -643,7 +643,7 @@
                 utterance.lang = 'nl-NL';
                 utterance.rate = 1.0;
                 utterance.pitch = 1.0;
-                utterance.volume = 0.3; // 30% volume
+                utterance.volume = 0.4; // 40% volume
                 
                 window.speechSynthesis.speak(utterance);
             }
@@ -681,7 +681,7 @@
                         totalLearned++;
                         updateMemoryList();
                         
-                        return `Bedankt! Ik heb geleerd: als jij "${question}" zegt, zeg ik "${answer}".`;
+                        return `Bedankt! Ik heb geleerd: "${question}" = "${answer}"`;
                     }
                 }
                 return "Gebruik: leer [vraag] = [antwoord]";
@@ -698,7 +698,7 @@
             }
             saveBotData();
             updateMemoryList();
-            addBotMessage("Item verwijderd uit geheugen.", (Info);
+            addBotMessage("Item verwijderd uit geheugen.", "tip");
         }
 
         // Analyseer en vind het beste antwoord
@@ -788,7 +788,7 @@
             learnedQA = botData.learnedQA;
             analysisMode = botData.analysisMode;
             
-            addBotMessage(`Hallo! Ik ben Combot. Ik heb ${githubQA.length} GitHub reacties en ${learnedQA.length} zelf geleerde reacties.`, "Begin van dit gesprek.");
+            addBotMessage(`Hallo! Ik ben Combot. Ik heb ${githubQA.length} GitHub reacties en ${learnedQA.length} zelf geleerde reacties.`, "begroeting");
             
             updateMemoryList();
             updateAnalysisButton();
@@ -940,7 +940,7 @@
             if (learnResult) {
                 addBotMessage(learnResult, "geleerd");
             } else {
-                addBotMessage("Gebruik: leer [vraag] = [antwoord] om me iets nieuws te leren!", "Info");
+                addBotMessage("Gebruik: leer [vraag] = [antwoord] om me iets nieuws te leren!", "tip");
             }
             userInput.value = "";
         }
@@ -974,7 +974,7 @@
 
         // Update analyse knop
         function updateAnalysisButton() {
-            analysisBtn.textContent = analysisMode ? "Analyse word niet meer weergegeven." : "Analyse word weergegeven.";
+            analysisBtn.textContent = analysisMode ? "Analyse Uit" : "Analyse Aan";
             analysisBtn.classList.toggle('active', analysisMode);
         }
 
@@ -1002,14 +1002,14 @@
             learnModeBtn.textContent = learnMode ? "Normale modus" : "Leermodus";
             learnModeBtn.classList.toggle('active', learnMode);
             userInput.placeholder = learnMode ? "Typ 'leer vraag = antwoord'..." : "Typ je bericht hier...";
-            addBotMessage(learnMode ? "Leermodus actief!" : "Leermodus uitgeschakeld.", "Info");
+            addBotMessage(learnMode ? "Leermodus actief!" : "Leermodus uitgeschakeld.", "tip");
         });
         
         analysisBtn.addEventListener('click', function() {
             analysisMode = !analysisMode;
             updateAnalysisButton();
             saveBotData();
-            addBotMessage(`Analyse modus is nu ${analysisMode ? 'ingeschakeld' : 'uitgeschakeld'}.`, "Info");
+            addBotMessage(`Analyse modus is nu ${analysisMode ? 'ingeschakeld' : 'uitgeschakeld'}.`, "tip");
         });
         
         clearAllMemoryBtn.addEventListener('click', function() {
