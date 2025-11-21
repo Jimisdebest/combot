@@ -88,6 +88,11 @@
             left: 0;
         }
 
+        .sidebar.closing {
+            left: -300px;
+            transition: left 0.3s ease;
+        }
+
         .sidebar h3 {
             color: #333;
             margin-bottom: 15px;
@@ -120,8 +125,8 @@
             background: #ff6b6b;
         }
 
-        .clear-btn {
-            background: #ff6b6b;
+        .speech-mode-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
             width: 100%;
             padding: 12px 15px;
             color: white;
@@ -133,61 +138,9 @@
             font-size: 0.9rem;
         }
 
-        .clear-btn:hover {
-            background: #ff5252;
+        .speech-mode-btn:hover {
+            background: linear-gradient(135deg, #ff5252, #ff3838);
             transform: translateX(5px);
-        }
-
-        .memory-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 10px;
-            background: #f9f9f9;
-        }
-
-        .memory-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: #e6eeff;
-            border-radius: 15px;
-            margin-bottom: 8px;
-            font-size: 0.8rem;
-            color: #4a6cf7;
-            animation: memoryItemPop 0.3s ease;
-        }
-
-        @keyframes memoryItemPop {
-            0% { opacity: 0; transform: scale(0.8); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        .memory-item:hover {
-            background: #4a6cf7;
-            color: white;
-        }
-
-        .delete-memory {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .delete-memory:hover {
-            background: #ff5252;
-            transform: scale(1.2);
         }
 
         .chat-container {
@@ -351,11 +304,18 @@
             visibility: hidden;
             transition: all 0.3s ease;
             z-index: 998;
+            cursor: pointer;
         }
 
         .overlay.active {
             opacity: 1;
             visibility: visible;
+        }
+
+        .overlay.closing {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
         }
 
         /* Geheugen beheer stijlen */
@@ -616,9 +576,9 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-section">
                 <h3>Modus</h3>
-                <button class="menu-btn" id="learn-mode-btn">Leermodus</button>
                 <button class="menu-btn" id="analysis-btn">Analyse Aan</button>
                 <button class="menu-btn" id="memory-management-btn">Geheugen beheren</button>
+                <button class="speech-mode-btn" id="speech-mode-btn">Spraakmodus</button>
             </div>
         </div>
         
@@ -859,9 +819,9 @@
         const hamburgerMenu = document.querySelector('.hamburger-menu');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
-        const learnModeBtn = document.getElementById('learn-mode-btn');
         const analysisBtn = document.getElementById('analysis-btn');
         const memoryManagementBtn = document.getElementById('memory-management-btn');
+        const speechModeBtn = document.getElementById('speech-mode-btn');
         const memoryManagement = document.getElementById('memory-management');
         const closeMemory = document.getElementById('close-memory');
         const memorySearch = document.getElementById('memory-search');
@@ -873,9 +833,24 @@
         const clearAllMemoryBtn = document.getElementById('clear-all-memory');
 
         // Variabelen
-        let learnMode = false;
         let isListening = false;
         let recognition = null;
+
+        // Functie om sidebar te sluiten met animatie
+        function closeSidebar() {
+            if (sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+                sidebar.classList.add('closing');
+                overlay.classList.remove('active');
+                overlay.classList.add('closing');
+                
+                // Verwijder closing class na animatie
+                setTimeout(() => {
+                    sidebar.classList.remove('closing');
+                    overlay.classList.remove('closing');
+                }, 300);
+            }
+        }
 
         // Spraakfunctie initialiseren
         function initializeSpeechRecognition() {
@@ -971,13 +946,22 @@
 
         // Hamburger menu functionaliteit
         hamburgerMenu.addEventListener('click', function() {
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
+            if (sidebar.classList.contains('active')) {
+                closeSidebar();
+            } else {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+            }
         });
 
+        // Overlay klik om sidebar te sluiten
         overlay.addEventListener('click', function() {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
+            closeSidebar();
+            
+            // Sluit ook geheugen beheer als het open is
+            if (memoryManagement.classList.contains('active')) {
+                memoryManagement.classList.remove('active');
+            }
         });
 
         // Geheugen beheer functionaliteit
@@ -989,7 +973,12 @@
 
         closeMemory.addEventListener('click', function() {
             memoryManagement.classList.remove('active');
-            overlay.classList.remove('active');
+            closeSidebar();
+        });
+
+        // Spraakmodus knop
+        speechModeBtn.addEventListener('click', function() {
+            window.location.href = 'spraak.html';
         });
 
         // Live zoeken in geheugen
@@ -1353,7 +1342,7 @@
             return "random";
         }
 
-        // Leer van bericht
+        // Leer van bericht (altijd actief)
         function learnFromMessage(message) {
             const words = message.toLowerCase().split(/\s+/);
             for (const word of words) {
@@ -1432,7 +1421,7 @@
             if (userInput.value.trim() === '' && !isListening) {
                 // Start spraakherkenning als er geen tekst is
                 toggleSpeechRecognition();
-            } else if (learnMode && userInput.value.toLowerCase().startsWith('leer ')) {
+            } else if (userInput.value.toLowerCase().startsWith('leer ')) {
                 handleLearnInput(userInput.value);
             } else {
                 handleUserInput();
@@ -1441,7 +1430,7 @@
 
         userInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                if (learnMode && userInput.value.toLowerCase().startsWith('leer ')) {
+                if (userInput.value.toLowerCase().startsWith('leer ')) {
                     handleLearnInput(userInput.value);
                 } else {
                     handleUserInput();
@@ -1452,14 +1441,6 @@
         // Update de send button wanneer de invoer verandert
         userInput.addEventListener('input', function() {
             updateSendButton();
-        });
-        
-        learnModeBtn.addEventListener('click', function() {
-            learnMode = !learnMode;
-            learnModeBtn.textContent = learnMode ? "Normale modus" : "Leermodus";
-            learnModeBtn.classList.toggle('active', learnMode);
-            userInput.placeholder = learnMode ? "Typ 'leer vraag = antwoord'..." : "Typ je bericht hier...";
-            addBotMessage(learnMode ? "Leermodus actief!" : "Leermodus uitgeschakeld.", "tip");
         });
         
         analysisBtn.addEventListener('click', function() {
