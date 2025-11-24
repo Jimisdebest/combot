@@ -143,6 +143,39 @@
             transform: translateX(5px);
         }
 
+        .website-learning {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .website-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .learn-website-btn {
+            width: 100%;
+            padding: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .learn-website-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
         .chat-container {
             flex: 1;
             overflow-y: auto;
@@ -580,6 +613,14 @@
                 <button class="menu-btn" id="memory-management-btn">Geheugen beheren</button>
                 <button class="speech-mode-btn" id="speech-mode-btn">Spraakmodus</button>
             </div>
+            
+            <div class="sidebar-section">
+                <h3>Website Kennis</h3>
+                <div class="website-learning">
+                    <input type="text" class="website-input" id="website-url" placeholder="https://voorbeeld.nl">
+                    <button class="learn-website-btn" id="learn-website-btn">Website Toevoegen</button>
+                </div>
+            </div>
         </div>
         
         <div class="overlay" id="overlay"></div>
@@ -636,6 +677,7 @@
             const storedStats = localStorage.getItem('combotStats');
             const storedLearnedQA = localStorage.getItem('combotLearnedQA');
             const storedAnalysisMode = localStorage.getItem('combotAnalysisMode');
+            const storedWebsiteWords = localStorage.getItem('combotWebsiteWords');
             
             // Standaard kennisbasis als er niets is opgeslagen
             const defaultKnowledgeBase = {
@@ -718,6 +760,9 @@
             // Laad zelf geleerde QA paren
             const learnedQA = storedLearnedQA ? JSON.parse(storedLearnedQA) : [];
             
+            // Laad website woorden
+            const websiteWords = storedWebsiteWords ? JSON.parse(storedWebsiteWords) : [];
+            
             // Standaard leerpatronen
             const defaultLearnedPatterns = {
                 begroeting: ["hallo", "hoi", "hey", "goedendag", "dag", "goedemorgen", "goedenmiddag", "goedenavond"],
@@ -744,7 +789,8 @@
                 totalMessages: 0,
                 totalLearned: 0,
                 githubResponsesUsed: 0,
-                learnedResponsesUsed: 0
+                learnedResponsesUsed: 0,
+                websiteWordsLearned: websiteWords.length
             };
             
             // Analyse modus
@@ -758,6 +804,7 @@
                 stats: storedStats ? JSON.parse(storedStats) : defaultStats,
                 githubQA: githubQA,
                 learnedQA: learnedQA,
+                websiteWords: websiteWords,
                 analysisMode: defaultAnalysisMode
             };
         }
@@ -768,12 +815,14 @@
             localStorage.setItem('combotLearnedPatterns', JSON.stringify(learnedPatterns));
             localStorage.setItem('combotPersonality', JSON.stringify(botPersonality));
             localStorage.setItem('combotLearnedQA', JSON.stringify(learnedQA));
+            localStorage.setItem('combotWebsiteWords', JSON.stringify(websiteWords));
             localStorage.setItem('combotAnalysisMode', JSON.stringify(analysisMode));
             localStorage.setItem('combotStats', JSON.stringify({
                 totalMessages: totalMessages,
                 totalLearned: totalLearned,
                 githubResponsesUsed: githubResponsesUsed,
-                learnedResponsesUsed: learnedResponsesUsed
+                learnedResponsesUsed: learnedResponsesUsed,
+                websiteWordsLearned: websiteWords.length
             }));
         }
         
@@ -784,6 +833,7 @@
             localStorage.removeItem('combotPersonality');
             localStorage.removeItem('combotStats');
             localStorage.removeItem('combotLearnedQA');
+            localStorage.removeItem('combotWebsiteWords');
             localStorage.removeItem('combotAnalysisMode');
             
             // Herinitialiseer de bot
@@ -797,6 +847,7 @@
                 learnedResponsesUsed = botData.stats.learnedResponsesUsed;
                 githubQA = botData.githubQA;
                 learnedQA = botData.learnedQA;
+                websiteWords = botData.websiteWords;
                 analysisMode = botData.analysisMode;
                 
                 // Update de UI
@@ -809,7 +860,7 @@
         }
         
         // Initialiseer de bot
-        let knowledgeBase, learnedPatterns, botPersonality, stats, githubQA, learnedQA, analysisMode;
+        let knowledgeBase, learnedPatterns, botPersonality, stats, githubQA, learnedQA, websiteWords, analysisMode;
         let totalMessages, totalLearned, githubResponsesUsed, learnedResponsesUsed;
 
         // Elementen
@@ -831,6 +882,8 @@
         const phrasesCount = document.getElementById('phrases-count');
         const exportMemoryBtn = document.getElementById('export-memory');
         const clearAllMemoryBtn = document.getElementById('clear-all-memory');
+        const websiteUrlInput = document.getElementById('website-url');
+        const learnWebsiteBtn = document.getElementById('learn-website-btn');
 
         // Variabelen
         let isListening = false;
@@ -849,6 +902,48 @@
                     sidebar.classList.remove('closing');
                     overlay.classList.remove('closing');
                 }, 300);
+            }
+        }
+
+        // Website kennis toevoegen
+        async function learnFromWebsite(url) {
+            try {
+                addBotMessage(`Website aan het leren: ${url}`, "tip");
+                
+                // Gebruik CORS proxy voor cross-origin requests
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const response = await fetch(proxyUrl + url);
+                const html = await response.text();
+                
+                // Parse HTML en extraheer tekst
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const text = doc.body.textContent || "";
+                
+                // Verwerk tekst en extraheer woorden
+                const words = text.toLowerCase()
+                    .replace(/[^\w\s]/g, ' ')
+                    .split(/\s+/)
+                    .filter(word => word.length > 3 && word.length < 20)
+                    .filter((word, index, self) => self.indexOf(word) === index)
+                    .slice(0, 100); // Beperk tot 100 woorden
+                
+                // Voeg woorden toe aan website woorden
+                words.forEach(word => {
+                    if (!websiteWords.includes(word) && !isCommonWord(word)) {
+                        websiteWords.push(word);
+                    }
+                });
+                
+                // Sla op
+                saveBotData();
+                
+                addBotMessage(`Succes! ${words.length} nieuwe woorden geleerd van de website.`, "tip");
+                updateMemoryManagement();
+                
+            } catch (error) {
+                console.error('Fout bij leren van website:', error);
+                addBotMessage("Kon de website niet laden. Controleer de URL en probeer opnieuw.", "tip");
             }
         }
 
@@ -981,6 +1076,22 @@
             window.location.href = 'spraak.html';
         });
 
+        // Website leren knop
+        learnWebsiteBtn.addEventListener('click', function() {
+            const url = websiteUrlInput.value.trim();
+            if (url) {
+                learnFromWebsite(url);
+                websiteUrlInput.value = '';
+            }
+        });
+
+        // Enter toets voor website input
+        websiteUrlInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                learnWebsiteBtn.click();
+            }
+        });
+
         // Live zoeken in geheugen
         memorySearch.addEventListener('input', function() {
             updateMemoryManagement();
@@ -1002,8 +1113,10 @@
             wordsList.innerHTML = "";
             let wordCount = 0;
             
-            // Verzamel alle geleerde woorden uit alle categorieën
+            // Verzamel alle geleerde woorden
             const allWords = [];
+            
+            // Woorden uit patronen
             for (const category in learnedPatterns) {
                 learnedPatterns[category].forEach(word => {
                     if (!allWords.includes(word)) {
@@ -1012,8 +1125,15 @@
                 });
             }
             
-            // Voeg persoonlijke geleerde woorden toe
+            // Persoonlijke geleerde woorden
             botPersonality.learnedWords.forEach(word => {
+                if (!allWords.includes(word)) {
+                    allWords.push(word);
+                }
+            });
+            
+            // Website woorden
+            websiteWords.forEach(word => {
                 if (!allWords.includes(word)) {
                     allWords.push(word);
                 }
@@ -1076,6 +1196,12 @@
                 botPersonality.learnedWords.splice(wordIndex, 1);
             }
             
+            // Verwijder uit website woorden
+            const websiteIndex = websiteWords.indexOf(word);
+            if (websiteIndex !== -1) {
+                websiteWords.splice(websiteIndex, 1);
+            }
+            
             saveBotData();
             updateMemoryManagement();
             addBotMessage(`Woord "${word}" verwijderd uit geheugen.`, "tip");
@@ -1105,7 +1231,8 @@
                 learnedPatterns: learnedPatterns,
                 knowledgeBase: knowledgeBase,
                 botPersonality: botPersonality,
-                learnedQA: learnedQA
+                learnedQA: learnedQA,
+                websiteWords: websiteWords
             };
             
             const dataStr = JSON.stringify(memoryData, null, 2);
@@ -1246,9 +1373,10 @@
             learnedResponsesUsed = botData.stats.learnedResponsesUsed;
             githubQA = botData.githubQA;
             learnedQA = botData.learnedQA;
+            websiteWords = botData.websiteWords;
             analysisMode = botData.analysisMode;
             
-            addBotMessage(`Hallo! Ik ben Combot. Ik heb ${githubQA.length} GitHub reacties en ${learnedQA.length} zelf geleerde reacties.`, "begroeting");
+            addBotMessage(`Hallo! Ik ben Combot. Ik heb ${githubQA.length} GitHub reacties, ${learnedQA.length} zelf geleerde reacties en ${websiteWords.length} woorden van websites geleerd.`, "begroeting");
             
             updateAnalysisButton();
             
@@ -1332,6 +1460,14 @@
         // Categoriseer bericht
         function categorizeMessage(message) {
             const lowerMessage = message.toLowerCase();
+            
+            // Controleer website woorden eerst
+            for (const word of websiteWords) {
+                if (lowerMessage.includes(word)) {
+                    return "website";
+                }
+            }
+            
             for (const category in learnedPatterns) {
                 for (const word of learnedPatterns[category]) {
                     if (lowerMessage.includes(word)) {
