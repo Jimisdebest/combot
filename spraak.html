@@ -18,12 +18,16 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            overflow: hidden;
+            position: relative;
         }
 
         .container {
             width: 100%;
             max-width: 400px;
             text-align: center;
+            z-index: 10;
+            position: relative;
         }
 
         .microphone {
@@ -199,9 +203,58 @@
             background: white;
             cursor: pointer;
         }
+
+        /* Woord animatie styles */
+        .word-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .learned-word {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+            animation: floatAcross 15s linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes floatAcross {
+            0% {
+                transform: translateX(-100px);
+                opacity: 0;
+            }
+            5% {
+                opacity: 1;
+            }
+            95% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(calc(100vw + 100px));
+                opacity: 0;
+            }
+        }
+
+        .word-bubble {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body>
+    <div class="word-animation" id="wordAnimation"></div>
+    
     <div class="container">
         <button class="microphone" id="microphone">
             🎤
@@ -230,6 +283,7 @@
         const volumeLevel = document.getElementById('volume-level');
         const noiseFilter = document.getElementById('noiseFilter');
         const sensitivitySlider = document.getElementById('sensitivitySlider');
+        const wordAnimation = document.getElementById('wordAnimation');
         
         // Variabelen voor ruisonderdrukking
         let isListening = false;
@@ -241,12 +295,106 @@
         let microphoneSource = null;
         let javascriptNode = null;
         let noiseFilterActive = true;
-        let sensitivity = 6; // Standaard gevoeligheid
-        let noiseThreshold = 0.3; // Drempelwaarde voor ruis
+        let sensitivity = 6;
+        let noiseThreshold = 0.3;
         let silenceCounter = 0;
         let speechBuffer = [];
         let lastSpeechTime = 0;
         
+        // Geleerde woorden opslag
+        let learnedWords = [];
+        let wordAnimationInterval = null;
+
+        // Woord animatie initialiseren
+        function initializeWordAnimation() {
+            // Laad geleerde woorden uit localStorage
+            loadLearnedWords();
+            
+            // Start animatie interval
+            wordAnimationInterval = setInterval(createFloatingWord, 2000);
+        }
+
+        // Laad geleerde woorden
+        function loadLearnedWords() {
+            try {
+                const storedWords = localStorage.getItem('combotLearnedWords');
+                if (storedWords) {
+                    learnedWords = JSON.parse(storedWords);
+                }
+                
+                // Voeg standaard woorden toe als er geen zijn
+                if (learnedWords.length === 0) {
+                    learnedWords = [
+                        "hallo", "ai", "slim", "leren", "praten", "vragen",
+                        "antwoord", "grappig", "leuk", "interessant", "help",
+                        "uitleg", "bedankt", "combinatie", "technologie"
+                    ];
+                }
+            } catch (error) {
+                console.error('Fout bij laden woorden:', error);
+                learnedWords = ["hallo", "ai", "slim", "leren"];
+            }
+        }
+
+        // Creëer zwevend woord
+        function createFloatingWord() {
+            if (learnedWords.length === 0) return;
+            
+            const randomWord = learnedWords[Math.floor(Math.random() * learnedWords.length)];
+            const wordElement = document.createElement('div');
+            wordElement.className = 'learned-word';
+            
+            // Willekeurige verticale positie (20% - 80% van schermhoogte)
+            const topPosition = 20 + Math.random() * 60;
+            wordElement.style.top = topPosition + '%';
+            
+            // Willekeurige vertraging voor animatie
+            const animationDelay = Math.random() * 5;
+            wordElement.style.animationDelay = animationDelay + 's';
+            
+            // Willekeurige animatie duur
+            const animationDuration = 10 + Math.random() * 10;
+            wordElement.style.animationDuration = animationDuration + 's';
+            
+            // Woord in bubbel
+            wordElement.innerHTML = `<div class="word-bubble">${randomWord}</div>`;
+            
+            wordAnimation.appendChild(wordElement);
+            
+            // Verwijder element na animatie
+            setTimeout(() => {
+                if (wordElement.parentNode) {
+                    wordElement.parentNode.removeChild(wordElement);
+                }
+            }, (animationDuration + animationDelay) * 1000);
+        }
+
+        // Voeg nieuw woord toe aan geleerde woorden
+        function addLearnedWord(word) {
+            const cleanWord = word.toLowerCase().trim();
+            
+            // Filter korte woorden en veelvoorkomende woorden
+            const commonWords = ["de", "het", "een", "en", "of", "maar", "dan", "om", "naar"];
+            if (cleanWord.length < 3 || commonWords.includes(cleanWord)) {
+                return;
+            }
+            
+            // Voeg toe als het woord nog niet bestaat
+            if (!learnedWords.includes(cleanWord)) {
+                learnedWords.push(cleanWord);
+                
+                // Bewaar in localStorage
+                try {
+                    localStorage.setItem('combotLearnedWords', JSON.stringify(learnedWords));
+                } catch (error) {
+                    console.error('Fout bij opslaan woorden:', error);
+                }
+                
+                // Toon direct het nieuwe woord
+                createFloatingWord();
+            }
+        }
+
         // Spraakherkenning initialiseren met ruisonderdrukking
         function initializeSpeechRecognition() {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -256,7 +404,6 @@
                 recognition.interimResults = true;
                 recognition.lang = 'nl-NL';
                 
-                // Verbeterde instellingen voor ruisonderdrukking
                 if (recognition.hasOwnProperty('maxAlternatives')) {
                     recognition.maxAlternatives = 1;
                 }
@@ -276,20 +423,21 @@
                         const transcript = result[0].transcript;
                         const confidence = result[0].confidence;
                         
-                        // Ruisonderdrukking: negeer lage confidence resultaten
                         if (result.isFinal && confidence > 0.6) {
                             finalTranscript += transcript;
                             hasValidSpeech = true;
+                            
+                            // Voeg woorden toe aan geleerde woorden
+                            const words = transcript.split(/\s+/);
+                            words.forEach(word => addLearnedWord(word));
                         }
                     }
                     
-                    // Update laatste spraaktijd bij geldige spraak
                     if (hasValidSpeech) {
                         lastSpeechTime = Date.now();
                         silenceCounter = 0;
                     }
                     
-                    // Alleen verwerken als er betekenisvolle spraak is
                     if (finalTranscript.trim() && !isProcessing && !isSpeaking && hasValidSpeech) {
                         processSpeechInput(finalTranscript);
                     }
@@ -347,25 +495,20 @@
                         audioContext = new (window.AudioContext || window.webkitAudioContext)();
                         analyser = audioContext.createAnalyser();
                         
-                        // Audio processing voor betere ruisonderdrukking
                         const source = audioContext.createMediaStreamSource(stream);
                         
-                        // Low-pass filter voor ruisreductie
                         const lowPassFilter = audioContext.createBiquadFilter();
                         lowPassFilter.type = "lowpass";
                         lowPassFilter.frequency.value = 4000;
                         
-                        // High-pass filter voor laagfrequente ruis
                         const highPassFilter = audioContext.createBiquadFilter();
                         highPassFilter.type = "highpass";
                         highPassFilter.frequency.value = 80;
                         
-                        // Verbind filters
                         source.connect(highPassFilter);
                         highPassFilter.connect(lowPassFilter);
                         lowPassFilter.connect(analyser);
                         
-                        // Analyser instellingen
                         analyser.fftSize = 2048;
                         analyser.smoothingTimeConstant = 0.8;
                         
@@ -381,41 +524,34 @@
                             const array = new Uint8Array(analyser.frequencyBinCount);
                             analyser.getByteFrequencyData(array);
                             
-                            // Bereken RMS (Root Mean Square) voor volume
                             let sum = 0;
                             for (let i = 0; i < array.length; i++) {
                                 sum += array[i] * array[i];
                             }
                             const rms = Math.sqrt(sum / array.length) / 255;
                             
-                            // Kalibreer ruisniveau tijdens eerste samples
                             if (calibrationSamples < maxCalibrationSamples) {
                                 noiseBaseline = (noiseBaseline * calibrationSamples + rms) / (calibrationSamples + 1);
                                 calibrationSamples++;
                             }
                             
-                            // Pas gevoeligheid toe op basis van slider
                             const adjustedSensitivity = sensitivity / 10;
                             const dynamicThreshold = noiseBaseline + (0.3 * adjustedSensitivity);
                             
-                            // Filter ruis met dynamische drempel
                             let filteredVolume = 0;
                             if (rms > dynamicThreshold) {
                                 filteredVolume = (rms - dynamicThreshold) / (1 - dynamicThreshold);
                                 filteredVolume = Math.min(filteredVolume * (1 + adjustedSensitivity), 1);
                             }
                             
-                            // Update volume indicator met gefilterd volume
                             const displayVolume = Math.min(filteredVolume * 100, 100);
                             volumeLevel.style.width = displayVolume + '%';
                             
-                            // Detectie van stilte voor automatische verwerking
                             const currentTime = Date.now();
                             if (filteredVolume > 0.1) {
                                 lastSpeechTime = currentTime;
                                 silenceCounter = 0;
                             } else if (currentTime - lastSpeechTime > 1500 && speechBuffer.length > 0) {
-                                // Automatische verwerking na 1.5 seconde stilte
                                 silenceCounter++;
                                 if (silenceCounter > 3) {
                                     const finalText = speechBuffer.join(' ');
@@ -453,7 +589,6 @@
                 microphone.innerHTML = '🎤';
             }
             
-            // Voeg noise filter indicator terug toe
             microphone.innerHTML += '<div class="noise-filter" id="noiseFilter">🔇</div>';
             if (isListening) {
                 noiseFilter.classList.add('active');
@@ -498,11 +633,9 @@
         async function processSpeechInput(transcript) {
             if (!transcript.trim() || isProcessing || isSpeaking) return;
             
-            // Extra filtering voor korte/onduidelijke invoer
             const cleanTranscript = transcript.trim();
             if (cleanTranscript.length < 2) return;
             
-            // Negeer veelvoorkomende ruis patronen
             const noisePatterns = [/^eh+$/, /^uh+$/, /^ah+$/, /^oh+$/, /^\s+$/];
             if (noisePatterns.some(pattern => pattern.test(cleanTranscript.toLowerCase()))) {
                 return;
@@ -513,13 +646,10 @@
             
             console.log("Verwerken: " + cleanTranscript);
             
-            // Genereer AI antwoord
             const response = await generateAIResponse(cleanTranscript);
             
-            // Spreek antwoord uit
             await speakText(response);
             
-            // Terug naar luisteren
             isProcessing = false;
             updateMicrophoneUI();
             
@@ -550,6 +680,8 @@
                 return "De ruisonderdrukking is actief. Ik filter achtergrondgeluid voor betere herkenning.";
             } else if (lowerInput.includes('microfoon')) {
                 return "De microfoon staat aan met geavanceerde ruisonderdrukking. Praat duidelijk voor beste resultaten.";
+            } else if (lowerInput.includes('woorden') || lowerInput.includes('leren')) {
+                return "Ik leer continu nieuwe woorden van onze gesprekken. Kijk hoe ze over het scherm bewegen!";
             } else {
                 const randomResponses = [
                     "Ik begrijp het. Kun je iets meer uitleg geven?",
@@ -590,7 +722,6 @@
         // Gevoeligheid aanpassen
         sensitivitySlider.addEventListener('input', function() {
             sensitivity = parseInt(this.value);
-            // Update noise threshold indicator positie
             document.querySelector('.noise-threshold').style.left = (30 + (sensitivity * 4)) + '%';
         });
         
@@ -599,6 +730,7 @@
         
         // Initialiseer bij laden
         window.onload = function() {
+            initializeWordAnimation();
             initializeSpeechRecognition();
             initializeAudioAnalysis();
         };
@@ -610,6 +742,9 @@
             }
             if (audioContext) {
                 audioContext.close();
+            }
+            if (wordAnimationInterval) {
+                clearInterval(wordAnimationInterval);
             }
             window.speechSynthesis.cancel();
         };
