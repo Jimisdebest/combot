@@ -905,7 +905,7 @@
             }
         }
 
-        // Website kennis toevoegen
+        // Website kennis toevoegen (ZONDER leestekens bij woorden)
         async function learnFromWebsite(url) {
             try {
                 addBotMessage(`Website aan het leren: ${url}`, "tip");
@@ -920,9 +920,9 @@
                 const doc = parser.parseFromString(html, 'text/html');
                 const text = doc.body.textContent || "";
                 
-                // Verwerk tekst en extraheer woorden
+                // Verwerk tekst en extraheer woorden ZONDER leestekens
                 const words = text.toLowerCase()
-                    .replace(/[^\w\s]/g, ' ')
+                    .replace(/[^\w\s]/g, ' ') // Verwijder leestekens
                     .split(/\s+/)
                     .filter(word => word.length > 3 && word.length < 20)
                     .filter((word, index, self) => self.indexOf(word) === index)
@@ -945,6 +945,12 @@
                 console.error('Fout bij leren van website:', error);
                 addBotMessage("Kon de website niet laden. Controleer de URL en probeer opnieuw.", "tip");
             }
+        }
+
+        // Veelvoorkomende woorden filteren
+        function isCommonWord(word) {
+            const commonWords = ["de", "het", "een", "en", "of", "maar", "dan", "om", "naar", "voor", "met", "zonder", "door", "over", "onder", "boven", "tussen", "naast", "achter", "voor", "bij", "sinds", "tot", "van", "aan", "in", "uit", "op", "te", "bij", "naar", "dat", "die", "dit", "die", "deze", "mijn", "jouw", "zijn", "haar", "ons", "hun", "wat", "wie", "hoe", "waar", "waarom"];
+            return commonWords.includes(word.toLowerCase()) || word.length < 3;
         }
 
         // Spraakfunctie initialiseren
@@ -1146,7 +1152,7 @@
                     wordItem.className = 'word-item';
                     wordItem.innerHTML = `
                         ${word}
-                        <button class="delete-word" onclick="deleteWord('${word}')">×</button>
+                        <button class="delete-word" onclick="deleteWord('${word.replace(/'/g, "\\'")}')">×</button>
                     `;
                     wordsList.appendChild(wordItem);
                     wordCount++;
@@ -1169,7 +1175,7 @@
                         phraseItem.className = 'phrase-item';
                         phraseItem.innerHTML = `
                             [${category}] ${phrase}
-                            <button class="delete-phrase" onclick="deletePhrase('${category}', '${phrase.replace(/'/g, "\\'")}')">×</button>
+                            <button class="delete-phrase" onclick="deletePhrase('${category.replace(/'/g, "\\'")}', '${phrase.replace(/'/g, "\\'")}')">×</button>
                         `;
                         phrasesList.appendChild(phraseItem);
                         phraseCount++;
@@ -1478,43 +1484,55 @@
             return "random";
         }
 
-        // Leer van bericht (altijd actief)
+        // Leer van bericht (ZONDER leestekens bij woorden, MET leestekens bij zinnen)
         function learnFromMessage(message) {
             const words = message.toLowerCase().split(/\s+/);
-            for (const word of words) {
-                let wordExists = false;
-                for (const cat in learnedPatterns) {
-                    if (learnedPatterns[cat].includes(word)) {
-                        wordExists = true;
+            
+            // Controleer of het een kort bericht is (waarschijnlijk een woord)
+            if (words.length <= 3) {
+                // Voor korte berichten: verwijder leestekens
+                for (const word of words) {
+                    const cleanWord = word.replace(/[^\w]/g, '');
+                    if (cleanWord.length <= 2 || isCommonWord(cleanWord)) continue;
+                    
+                    let wordExists = false;
+                    for (const cat in learnedPatterns) {
+                        if (learnedPatterns[cat].includes(cleanWord)) {
+                            wordExists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!wordExists) {
+                        const category = categorizeMessage(cleanWord);
+                        if (!learnedPatterns[category]) {
+                            learnedPatterns[category] = [];
+                        }
+                        learnedPatterns[category].push(cleanWord);
+                        botPersonality.learnedWords.push(cleanWord);
+                        totalLearned++;
+                    }
+                }
+            } else {
+                // Voor langere berichten (zinnen): behoud leestekens
+                let phraseExists = false;
+                for (const cat in knowledgeBase) {
+                    if (knowledgeBase[cat].includes(message)) {
+                        phraseExists = true;
                         break;
                     }
                 }
                 
-                if (!wordExists && word.length > 2 && !isCommonWord(word)) {
+                if (!phraseExists) {
                     const category = categorizeMessage(message);
-                    if (!learnedPatterns[category]) {
-                        learnedPatterns[category] = [];
-                    }
-                    learnedPatterns[category].push(word);
-                    botPersonality.learnedWords.push(word);
-                    totalLearned++;
-                    
                     if (!knowledgeBase[category]) {
                         knowledgeBase[category] = [];
                     }
-                    
-                    if (!botPersonality.learnedPhrases.includes(message)) {
-                        botPersonality.learnedPhrases.push(message);
-                        knowledgeBase[category].push(message);
-                    }
+                    knowledgeBase[category].push(message);
+                    botPersonality.learnedPhrases.push(message);
+                    totalLearned++;
                 }
             }
-        }
-
-        // Veelvoorkomende woorden filteren
-        function isCommonWord(word) {
-            const commonWords = ["de", "het", "een", "en", "of", "maar", "dan", "om", "naar", "voor", "met", "zonder", "door", "over", "onder", "boven", "tussen", "naast", "achter", "voor", "bij", "sinds", "tot", "van", "aan", "in", "uit", "op", "te", "bij", "naar"];
-            return commonWords.includes(word.toLowerCase());
         }
 
         // Bereken gelijkenis
