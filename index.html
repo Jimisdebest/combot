@@ -213,6 +213,13 @@
             border-bottom-left-radius: 5px;
         }
 
+        .bot-message img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
         .analysis-message {
             align-self: flex-start;
             background-color: #fff8e1;
@@ -728,6 +735,9 @@
                     "Interessant perspectief!",
                     "Daar had ik nog niet aan gedacht!",
                     "Zo kun je het ook zien!"
+                ],
+                afbeelding: [
+                    "Hier is een afbeelding voor je!"
                 ]
             };
             
@@ -743,10 +753,16 @@
                     if (line.includes('=')) {
                         const [question, answer] = line.split('=').map(part => part.trim());
                         if (question && answer) {
+                            // Controleer of het antwoord HTML bevat (img tag)
+                            const containsHTML = answer.includes('<img') || answer.includes('<div') || 
+                                                answer.includes('<span') || answer.includes('<p>') ||
+                                                answer.includes('<h') || answer.includes('<a href');
+                            
                             githubQA.push({
                                 question: question.toLowerCase(),
                                 answer: answer,
-                                source: 'github'
+                                source: 'github',
+                                containsHTML: containsHTML
                             });
                         }
                     }
@@ -772,7 +788,8 @@
                 grap: ["grap", "grappig", "lachen", "mop", "humor", "lach"],
                 verdrietig: ["verdrietig", "triest", "somber", "depri", "huilen", "zielig"],
                 vraag: ["waarom", "hoe", "wat", "wanneer", "wie", "welke"],
-                antwoord: ["omdat", "daarom", "dus", "want", "om"]
+                antwoord: ["omdat", "daarom", "dus", "want", "om"],
+                afbeelding: ["afbeelding", "foto", "plaatje", "beeld", "image", "img", "maak een afbeelding", "toon een afbeelding", "laat een foto zien"]
             };
             
             // Standaard persoonlijkheid
@@ -1272,11 +1289,17 @@
                 if (content.includes('=')) {
                     const [question, answer] = content.split('=').map(part => part.trim());
                     if (question && answer) {
+                        // Controleer of het antwoord HTML bevat
+                        const containsHTML = answer.includes('<img') || answer.includes('<div') || 
+                                            answer.includes('<span') || answer.includes('<p>') ||
+                                            answer.includes('<h') || answer.includes('<a href');
+                        
                         // Voeg toe aan geleerde QA
                         learnedQA.push({
                             question: question.toLowerCase(),
                             answer: answer,
-                            source: 'geleerd'
+                            source: 'geleerd',
+                            containsHTML: containsHTML
                         });
                         
                         // Sla op
@@ -1309,6 +1332,7 @@
                         response: qa.answer, 
                         category: "github", 
                         source: 'github',
+                        containsHTML: qa.containsHTML,
                         analysis: analysisSteps
                     };
                 }
@@ -1337,14 +1361,55 @@
                     response: bestMatch.answer, 
                     category: "github", 
                     source: 'github',
+                    containsHTML: bestMatch.containsHTML,
                     analysis: analysisSteps
                 };
             }
             
             analysisSteps.push("✗ Geen vraag gevonden met minimaal 65% overeenkomst.");
+            analysisSteps.push("Zoeken in zelf geleerde QA...");
+            
+            // Stap 3: Zoek in zelf geleerde QA
+            for (const qa of learnedQA) {
+                if (lowerMessage === qa.question) {
+                    analysisSteps.push("✓ Exacte overeenkomst gevonden in geleerde QA.");
+                    learnedResponsesUsed++;
+                    return { 
+                        response: qa.answer, 
+                        category: "geleerd", 
+                        source: 'geleerd',
+                        containsHTML: qa.containsHTML,
+                        analysis: analysisSteps
+                    };
+                }
+            }
+            
+            // Stap 4: Overeenkomst in geleerde QA
+            for (const qa of learnedQA) {
+                const similarity = calculateSimilarity(lowerMessage, qa.question);
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestMatch = qa;
+                }
+            }
+            
+            if (bestMatch && bestSimilarity >= 0.65) {
+                analysisSteps.push(`✓ Vraag gevonden met ${Math.round(bestSimilarity * 100)}% overeenkomst in geleerde QA.`);
+                analysisSteps.push("Antwoord geven aan gebruiker.");
+                learnedResponsesUsed++;
+                return { 
+                    response: bestMatch.answer, 
+                    category: "geleerd", 
+                    source: 'geleerd',
+                    containsHTML: bestMatch.containsHTML,
+                    analysis: analysisSteps
+                };
+            }
+            
+            analysisSteps.push("✗ Geen overeenkomst gevonden in geleerde QA.");
             analysisSteps.push("Werk overlaten aan SmartBot...");
             
-            // Stap 3: Fallback naar standaard kennis
+            // Stap 5: Fallback naar standaard kennis
             const category = categorizeMessage(userMessage);
             if (knowledgeBase[category] && knowledgeBase[category].length > 0) {
                 const response = knowledgeBase[category][Math.floor(Math.random() * knowledgeBase[category].length)];
@@ -1353,6 +1418,7 @@
                     response: response, 
                     category: category, 
                     source: 'knowledge',
+                    containsHTML: false,
                     analysis: analysisSteps
                 };
             }
@@ -1363,6 +1429,7 @@
                 response: "Dat is een interessante vraag! Kun je wat meer uitleg geven?", 
                 category: "vraag", 
                 source: 'fallback',
+                containsHTML: false,
                 analysis: analysisSteps
             };
         }
@@ -1411,13 +1478,31 @@
         function addBotMessage(message, category) {
             const messageElement = document.createElement('div');
             messageElement.className = 'message bot-message';
-            messageElement.textContent = message;
+            
+            // Controleer of het bericht HTML bevat (bijv. img tag)
+            if (typeof message === 'object' && message.containsHTML) {
+                // Als het een object is met HTML flag, gebruik dan de response
+                messageElement.innerHTML = message.response;
+            } else if (typeof message === 'string' && (message.includes('<img') || message.includes('<div') || 
+                      message.includes('<span') || message.includes('<p>') || 
+                      message.includes('<h') || message.includes('<a href'))) {
+                // Als het een string is die HTML bevat
+                messageElement.innerHTML = message;
+            } else {
+                // Anders gewone tekst
+                messageElement.textContent = message;
+            }
             
             chatContainer.appendChild(messageElement);
             scrollToBottom();
             
             totalMessages++;
-            speakText(message);
+            
+            // Spreek alleen tekst als er geen HTML is
+            if (typeof message === 'string' && !message.includes('<img')) {
+                speakText(message);
+            }
+            
             saveBotData();
         }
 
@@ -1621,13 +1706,13 @@
             setTimeout(() => {
                 thinkingElement.remove();
                 
-                const { response, category, source, analysis } = findResponseWithAnalysis(message);
+                const responseData = findResponseWithAnalysis(message);
                 
                 if (analysisMode) {
-                    addAnalysisMessage(analysis);
+                    addAnalysisMessage(responseData.analysis);
                 }
                 
-                addBotMessage(response, category);
+                addBotMessage(responseData, responseData.category);
                 
                 userInput.value = "";
                 userInput.focus();
