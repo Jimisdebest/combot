@@ -19,3 +19,6 @@ maak een zwarte spijkerbroek = https://copilot.microsoft.com/th/id/BCO.b59fecfa-
 maak een blauwe spijkerbroek = https://copilot.microsoft.com/th/id/BCO.675a7f3e-be84-4f25-8e6f-11ebc6cf6793.png
 maak een t - shirt = https://copilot.microsoft.com/th/id/BCO.59be5cc4-0a33-4f8b-ada7-637e83aff1fc.png
 maak een trui = https://copilot.microsoft.com/th/id/BCO.06bebdd6-cdbf-41d1-a66b-66a5542abf06.png
+maak een dj - ende draak = https://copilot.microsoft.com/th/id/BCO.c694af08-3d7e-4639-8eaf-25ba8c984b57.png
+maak een dj - ende kat = https://copilot.microsoft.com/th/id/BCO.39b262ec-d200-4a4d-a5c2-0ec292c4677f.png
+maak een dj - ende jongen = https://copilot.microsoft.com/th/id/BCO.c2d4a30d-e3d4-4461-a527-224f8fd4a2e5.png
