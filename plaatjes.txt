@@ -18,4 +18,4 @@ maak een logo voor merkkleding = https://copilot.microsoft.com/th/id/BCO.23bc639
 maak een zwarte spijkerbroek = https://copilot.microsoft.com/th/id/BCO.b59fecfa-ee30-41ff-8a50-d80c1b55193a.png
 maak een blauwe spijkerbroek = https://copilot.microsoft.com/th/id/BCO.675a7f3e-be84-4f25-8e6f-11ebc6cf6793.png
 maak een t - shirt = https://copilot.microsoft.com/th/id/BCO.59be5cc4-0a33-4f8b-ada7-637e83aff1fc.png
-maak een trui
+maak een trui = https://copilot.microsoft.com/th/id/BCO.06bebdd6-cdbf-41d1-a66b-66a5542abf06.png
