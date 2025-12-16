@@ -209,7 +209,77 @@
             background-color: var(--bg-color);
         }
 
-        .message {
+        /* WhatsApp-stijl voor botberichten */
+        .bot-message-container {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            max-width: 80%;
+            align-self: flex-start;
+        }
+
+        .bot-logo {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            margin-right: 10px;
+            margin-top: 5px;
+            flex-shrink: 0;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+        }
+
+        .bot-message-content {
+            background-color: var(--message-bg);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 5px;
+            border-radius: 18px;
+            padding: 12px 18px;
+            position: relative;
+            word-wrap: break-word;
+            max-width: 100%;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .bot-message-content.learned {
+            border-left: 4px solid var(--learning-color);
+        }
+
+        .bot-message-content img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: block;
+        }
+
+        /* Vergroot de afbeeldingen voor beter zicht */
+        .bot-message-content .generated-image {
+            max-width: 100%;
+            max-height: 400px;
+            width: auto;
+            height: auto;
+            border-radius: 12px;
+            margin: 10px 0;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .bot-message-content .generated-image:hover {
+            transform: scale(1.02);
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--user-message-bg), var(--secondary-color));
+            color: var(--user-message-color);
+            border-bottom-right-radius: 5px;
             max-width: 80%;
             padding: 12px 18px;
             border-radius: 18px;
@@ -218,34 +288,42 @@
             word-wrap: break-word;
         }
 
-        @keyframes messageSlide {
-            0% { opacity: 0; transform: translateY(10px); }
-            100% { opacity: 1; transform: translateY(0); }
+        /* Stijl voor "Afbeelding genereren..." bericht */
+        .generating-message {
+            color: var(--text-color);
+            font-style: italic;
+            opacity: 0.8;
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .user-message {
-            align-self: flex-end;
-            background: linear-gradient(135deg, var(--user-message-bg), var(--secondary-color));
-            color: var(--user-message-color);
-            border-bottom-right-radius: 5px;
+        .generating-dots {
+            display: inline-flex;
+            gap: 4px;
         }
 
-        .bot-message {
-            align-self: flex-start;
-            background-color: var(--message-bg);
-            border: 1px solid var(--border-color);
-            border-bottom-left-radius: 5px;
+        .generating-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            animation: generatingPulse 1.5s infinite;
+            opacity: 0.7;
         }
 
-        .bot-message.learned {
-            border-left: 4px solid var(--learning-color);
+        .generating-dots span:nth-child(2) {
+            animation-delay: 0.2s;
         }
 
-        .bot-message img {
-            max-width: 100%;
-            border-radius: 10px;
-            margin-top: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        .generating-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes generatingPulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
         }
 
         .analysis-message {
@@ -752,7 +830,7 @@
                 margin-left: 40px;
             }
             
-            .message {
+            .bot-message-container, .user-message {
                 max-width: 90%;
             }
 
@@ -970,7 +1048,7 @@
                             imagesQA.push({
                                 question: question.toLowerCase(),
                                 imageUrl: imageUrl,
-                                answer: `<img src="${imageUrl}" alt="${question}" style="max-width: 100%; border-radius: 10px;">`,
+                                answer: `<img src="${imageUrl}" alt="${question}" class="generated-image">`,
                                 containsHTML: true,
                                 source: 'plaatjes'
                             });
@@ -988,8 +1066,8 @@
                     { question: "hoe gaat het", answer: "Goed, dank je! En met jou?", containsHTML: false, source: 'github' }
                 ];
                 imagesQA = [
-                    { question: "maak een aap", imageUrl: "https://images.unsplash.com/photo-1557318041-1ce374d55ebf?w=400&fit=crop", answer: `<img src="https://images.unsplash.com/photo-1557318041-1ce374d55ebf?w=400&fit=crop" alt="Aap" style="max-width: 100%; border-radius: 10px;">`, containsHTML: true, source: 'plaatjes' },
-                    { question: "toon een hond", imageUrl: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&fit=crop", answer: `<img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&fit=crop" alt="Hond" style="max-width: 100%; border-radius: 10px;">`, containsHTML: true, source: 'plaatjes' }
+                    { question: "maak een aap", imageUrl: "https://images.unsplash.com/photo-1557318041-1ce374d55ebf?w=400&fit=crop", answer: `<img src="https://images.unsplash.com/photo-1557318041-1ce374d55ebf?w=400&fit=crop" alt="Aap" class="generated-image">`, containsHTML: true, source: 'plaatjes' },
+                    { question: "toon een hond", imageUrl: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&fit=crop", answer: `<img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&fit=crop" alt="Hond" class="generated-image">`, containsHTML: true, source: 'plaatjes' }
                 ];
             }
         }
@@ -1048,9 +1126,9 @@
             
             // Update knoppen tekst
             updateSendButton();
-            analysisBtn.textContent = analysisMode ? "Analyse Uitzetten" : "Analyse Aanzetten";
+            analysisBtn.textContent = analysisMode ? "Analyse Uit" : "Analyse Aan";
             analysisBtn.classList.toggle('active', analysisMode);
-            autoLearnBtn.textContent = autoLearnMode ? "Auto-leren Uitzetten" : "Auto-leren Aanzetten";
+            autoLearnBtn.textContent = autoLearnMode ? "Auto-leren Uit" : "Auto-leren Aan";
             autoLearnBtn.classList.toggle('active', autoLearnMode);
             
             // Toon welkomstbericht
@@ -1294,7 +1372,7 @@
         // CONTROLEER OF ER EEN AFBEELDING GEVRAAGD WORDT
         function isImageRequest(message) {
             const lowerMessage = message.toLowerCase();
-            const imageKeywords = ['afbeelding', 'foto', 'plaatje', 'beeld', 'image', 'img', 'maak een', 'toon een', 'laat een zien', 'geef me een', 'zoek een', 'vind een'];
+            const imageKeywords = ['afbeelding', 'foto', 'plaatje', 'beeld', 'image', 'img', 'maak een', 'toon een', 'laat een zien', 'geef me een', 'zoek een', 'vind een', 'genereer', 'creëer'];
             
             for (const keyword of imageKeywords) {
                 if (lowerMessage.includes(keyword)) {
@@ -1319,12 +1397,74 @@
                 }
             }
             
-            // Alleen teruggeven als er een goede match is (minimaal 40% gelijkenis)
-            if (bestMatch && bestScore >= 0.4) {
+            // Alleen teruggeven als er een goede match is
+            if (bestMatch && bestScore >= 0.3) {
                 return bestMatch;
             }
             
             return null;
+        }
+
+        // GENEREER AFBEELDING RESPONSE
+        async function generateImageResponse(message, analysisSteps) {
+            return new Promise((resolve) => {
+                // Toon eerst "Afbeelding genereren..." bericht
+                const generatingDiv = document.createElement('div');
+                generatingDiv.className = 'bot-message-container';
+                generatingDiv.innerHTML = `
+                    <img src="logo.png" class="bot-logo" alt="Nexi">
+                    <div class="bot-message-content">
+                        <div class="generating-message">
+                            Afbeelding genereren...
+                            <span class="generating-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </div>
+                    </div>
+                `;
+                chatContainer.appendChild(generatingDiv);
+                scrollToBottom();
+                
+                // Zoek de beste afbeelding match
+                const bestImage = findBestImage(message);
+                
+                // Wacht 3 seconden om het gevoel van "genereren" te geven
+                setTimeout(() => {
+                    // Verwijder het "genereren" bericht
+                    generatingDiv.remove();
+                    
+                    let response;
+                    if (bestImage) {
+                        response = {
+                            answer: `Hier is een afbeelding voor je:<br><img src="${bestImage.imageUrl}" alt="${message}" class="generated-image">`,
+                            containsHTML: true,
+                            source: 'plaatjes',
+                            analysisSteps: analysisSteps,
+                            isLearned: false
+                        };
+                    } else {
+                        // Fallback afbeelding
+                        const fallbackImages = [
+                            "https://images.unsplash.com/photo-1579546929662-711aa81148cf?w=800&fit=crop",
+                            "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w-800&fit=crop",
+                            "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&fit=crop"
+                        ];
+                        const randomImage = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+                        
+                        response = {
+                            answer: `Ik heb een afbeelding voor je gegenereerd:<br><img src="${randomImage}" alt="${message}" class="generated-image"><br><small><i>Afbeelding gegenereerd op basis van: "${message}"</i></small>`,
+                            containsHTML: true,
+                            source: 'generated',
+                            analysisSteps: analysisSteps,
+                            isLearned: false
+                        };
+                    }
+                    
+                    resolve(response);
+                }, 3000); // 3 seconden wachttijd
+            });
         }
 
         // BEREKEN GELIJKENIS
@@ -1348,6 +1488,24 @@
         function findBestResponse(message) {
             const lowerMessage = message.toLowerCase();
             const analysisSteps = [];
+            const isImageReq = isImageRequest(message);
+            
+            // Als het een afbeeldingsverzoek is, ga direct naar afbeeldingen
+            if (isImageReq) {
+                analysisSteps.push({
+                    text: "Afbeeldingsverzoek gedetecteerd.",
+                    success: true
+                });
+                
+                return {
+                    answer: "", // Leeg antwoord, wordt vervangen door generateImageResponse
+                    containsHTML: false,
+                    source: 'image_request',
+                    analysisSteps: analysisSteps,
+                    isLearned: false,
+                    isImageRequest: true
+                };
+            }
             
             // 1. EERST: Controleer geleerde QA (geeft voorkeur aan geleerde antwoorden)
             analysisSteps.push({
@@ -1358,7 +1516,7 @@
             for (const qa of learnedQA) {
                 if (lowerMessage === qa.question) {
                     analysisSteps[analysisSteps.length - 1] = {
-                        text: `Exacte match gevonden in geleerde conversaties (vanuit gesprek).`,
+                        text: `Exacte match gevonden in geleerde conversaties.`,
                         success: true
                     };
                     return {
@@ -1366,18 +1524,19 @@
                         containsHTML: qa.containsHTML,
                         source: 'geleerd',
                         analysisSteps: analysisSteps,
-                        isLearned: true
+                        isLearned: true,
+                        isImageRequest: false
                     };
                 }
             }
             
-            // 2. Check op gedeeltelijke matches in geleerde QA (hogere tolerantie)
+            // 2. Check op gedeeltelijke matches in geleerde QA
             let bestLearnedMatch = null;
             let bestLearnedScore = 0;
             
             for (const qa of learnedQA) {
                 const score = calculateSimilarity(lowerMessage, qa.question);
-                if (score > bestLearnedScore && score >= 0.6) { // Lagere drempel voor geleerde QA
+                if (score > bestLearnedScore && score >= 0.6) {
                     bestLearnedScore = score;
                     bestLearnedMatch = qa;
                 }
@@ -1393,7 +1552,8 @@
                     containsHTML: bestLearnedMatch.containsHTML,
                     source: 'geleerd',
                     analysisSteps: analysisSteps,
-                    isLearned: true
+                    isLearned: true,
+                    isImageRequest: false
                 };
             }
             
@@ -1402,42 +1562,7 @@
                 success: false
             };
             
-            // 3. Check of het een afbeelding verzoek is
-            const isImageReq = isImageRequest(message);
-            if (isImageReq) {
-                analysisSteps.push({
-                    text: "Er wordt om een afbeelding gevraagd.",
-                    success: true
-                });
-                
-                // 4. Zoek in plaatjes.txt
-                const bestImage = findBestImage(message);
-                if (bestImage) {
-                    analysisSteps.push({
-                        text: "Afbeelding gevonden in plaatjes.txt.",
-                        success: true
-                    });
-                    return {
-                        answer: bestImage.answer,
-                        containsHTML: true,
-                        source: 'plaatjes',
-                        analysisSteps: analysisSteps,
-                        isLearned: false
-                    };
-                } else {
-                    analysisSteps.push({
-                        text: "Geen afbeelding gevonden in plaatjes.txt.",
-                        success: false
-                    });
-                }
-            } else {
-                analysisSteps.push({
-                    text: "Er wordt niet om een afbeelding gevraagd.",
-                    success: true
-                });
-            }
-            
-            // 5. Exacte match in GitHub reacties
+            // 3. Exacte match in GitHub reacties
             analysisSteps.push({
                 text: "Zoeken naar exacte overeenkomst in reacties.txt...",
                 success: null
@@ -1454,7 +1579,8 @@
                         containsHTML: qa.containsHTML,
                         source: 'github',
                         analysisSteps: analysisSteps,
-                        isLearned: false
+                        isLearned: false,
+                        isImageRequest: false
                     };
                 }
             }
@@ -1464,7 +1590,7 @@
                 success: false
             };
             
-            // 6. Zoek naar vraag met minimaal 70% overeenkomst
+            // 4. Zoek naar vraag met minimaal 70% overeenkomst
             analysisSteps.push({
                 text: "Zoeken naar vraag met minimaal 70% overeenkomst...",
                 success: null
@@ -1491,7 +1617,8 @@
                     containsHTML: bestGithubMatch.containsHTML,
                     source: 'github',
                     analysisSteps: analysisSteps,
-                    isLearned: false
+                    isLearned: false,
+                    isImageRequest: false
                 };
             }
             
@@ -1500,7 +1627,7 @@
                 success: false
             };
             
-            // 7. Fallback naar standaard kennis (SmartBot)
+            // 5. Fallback naar standaard kennis (SmartBot)
             analysisSteps.push({
                 text: "Werk overlaten aan SmartBot (standaard kennis)...",
                 success: true
@@ -1514,17 +1641,19 @@
                     containsHTML: false,
                     source: 'standaard',
                     analysisSteps: analysisSteps,
-                    isLearned: false
+                    isLearned: false,
+                    isImageRequest: false
                 };
             }
             
-            // 8. Laatste fallback
+            // 6. Laatste fallback
             return {
                 answer: "Dat begrijp ik niet. Kun je het anders formuleren?",
                 containsHTML: false,
                 source: 'fallback',
                 analysisSteps: analysisSteps,
-                isLearned: false
+                isLearned: false,
+                isImageRequest: false
             };
         }
 
@@ -1601,19 +1730,30 @@
         }
 
         function addBotMessage(message, containsHTML, analysisSteps = null, isLearned = false) {
-            const div = document.createElement('div');
-            div.className = 'message bot-message';
+            const container = document.createElement('div');
+            container.className = 'bot-message-container';
+            
+            // Voeg logo toe zoals WhatsApp
+            const logoImg = document.createElement('img');
+            logoImg.src = 'logo.png';
+            logoImg.className = 'bot-logo';
+            logoImg.alt = 'Nexi';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'bot-message-content';
             if (isLearned) {
-                div.classList.add('learned');
+                contentDiv.classList.add('learned');
             }
             
             if (containsHTML) {
-                div.innerHTML = message;
+                contentDiv.innerHTML = message;
             } else {
-                div.textContent = message;
+                contentDiv.textContent = message;
             }
             
-            chatContainer.appendChild(div);
+            container.appendChild(logoImg);
+            container.appendChild(contentDiv);
+            chatContainer.appendChild(container);
             scrollToBottom();
             
             // Sla het botbericht op voor toekomstige leerprocessen
@@ -1739,8 +1879,8 @@
                     convItem.className = 'conversation-item';
                     convItem.innerHTML = `
                         <strong>Vraag:</strong> ${qa.question}
-                        <strong>Antwoord:</strong> ${qa.answer}
-                        <button class="delete-conversation" onclick="deleteConversation(${index})">×</button>
+                        <br><strong>Antwoord:</strong> ${qa.answer}
+                        <button class="delete-conversation" data-index="${index}">×</button>
                     `;
                     conversationsList.appendChild(convItem);
                     conversationCount++;
@@ -1767,7 +1907,7 @@
                 if (searchTerm === '' || word.toLowerCase().includes(searchTerm)) {
                     const wordItem = document.createElement('div');
                     wordItem.className = 'word-item';
-                    wordItem.innerHTML = `${word}<button class="delete-word" onclick="deleteWord('${word.replace(/'/g, "\\'")}')">×</button>`;
+                    wordItem.innerHTML = `${word}<button class="delete-word" data-word="${word}">×</button>`;
                     wordsList.appendChild(wordItem);
                     wordCount++;
                 }
@@ -1783,17 +1923,40 @@
                     if (searchTerm === '' || phrase.toLowerCase().includes(searchTerm)) {
                         const phraseItem = document.createElement('div');
                         phraseItem.className = 'phrase-item';
-                        phraseItem.innerHTML = `${phrase}<button class="delete-phrase" onclick="deletePhrase('${category.replace(/'/g, "\\'")}', '${phrase.replace(/'/g, "\\'")}')">×</button>`;
+                        phraseItem.innerHTML = `${phrase}<button class="delete-phrase" data-category="${category}" data-phrase="${phrase}">×</button>`;
                         phrasesList.appendChild(phraseItem);
                         phraseCount++;
                     }
                 });
             }
             phrasesCount.textContent = phraseCount;
+            
+            // Voeg event listeners toe voor delete knoppen
+            document.querySelectorAll('.delete-word').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const word = this.getAttribute('data-word');
+                    deleteWord(word);
+                });
+            });
+            
+            document.querySelectorAll('.delete-phrase').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const category = this.getAttribute('data-category');
+                    const phrase = this.getAttribute('data-phrase');
+                    deletePhrase(category, phrase);
+                });
+            });
+            
+            document.querySelectorAll('.delete-conversation').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    deleteConversation(index);
+                });
+            });
         }
 
-        // DELETE FUNCTIES (moeten globaal zijn)
-        window.deleteWord = function(word) {
+        // DELETE FUNCTIES
+        function deleteWord(word) {
             for (const category in learnedPatterns) {
                 const index = learnedPatterns[category].indexOf(word);
                 if (index !== -1) learnedPatterns[category].splice(index, 1);
@@ -1805,9 +1968,9 @@
             saveData();
             updateMemoryManagement();
             addBotMessage(`Woord "${word}" verwijderd uit geheugen.`, false);
-        };
+        }
 
-        window.deletePhrase = function(category, phrase) {
+        function deletePhrase(category, phrase) {
             const index = knowledgeBase[category].indexOf(phrase);
             if (index !== -1) {
                 knowledgeBase[category].splice(index, 1);
@@ -1817,9 +1980,9 @@
                 updateMemoryManagement();
                 addBotMessage(`Zin verwijderd uit categorie "${category}".`, false);
             }
-        };
+        }
 
-        window.deleteConversation = function(index) {
+        function deleteConversation(index) {
             if (index >= 0 && index < learnedQA.length) {
                 const removedQA = learnedQA.splice(index, 1)[0];
                 
@@ -1832,7 +1995,7 @@
                 updateMemoryManagement();
                 addBotMessage(`Conversatie verwijderd: "${removedQA.question}"`, false);
             }
-        };
+        }
 
         // SCROLL
         function scrollToBottom() {
@@ -1842,7 +2005,7 @@
         }
 
         // VERWERK INPUT
-        function handleUserInput() {
+        async function handleUserInput() {
             const message = userInput.value.trim();
             if (!message) return;
             
@@ -1866,16 +2029,31 @@
             
             // Denkproces tonen
             const thinking = document.createElement('div');
-            thinking.className = 'thinking';
-            thinking.innerHTML = 'Nexi denkt na<span class="thinking-dots"><span></span><span></span><span></span></span>';
+            thinking.className = 'bot-message-container';
+            thinking.innerHTML = `
+                <img src="logo.png" class="bot-logo" alt="Nexi">
+                <div class="bot-message-content thinking">
+                    Nexi denkt na<span class="thinking-dots"><span></span><span></span><span></span></span>
+                </div>
+            `;
             chatContainer.appendChild(thinking);
             scrollToBottom();
             
             // Antwoord na korte vertraging
-            setTimeout(() => {
+            setTimeout(async () => {
                 thinking.remove();
+                
                 const response = findBestResponse(message);
-                addBotMessage(response.answer, response.containsHTML, response.analysisSteps, response.isLearned);
+                
+                if (response.isImageRequest) {
+                    // Speciale afbeelding verwerking
+                    const imageResponse = await generateImageResponse(message, response.analysisSteps);
+                    addBotMessage(imageResponse.answer, imageResponse.containsHTML, imageResponse.analysisSteps, imageResponse.isLearned);
+                } else {
+                    // Normale tekst response
+                    addBotMessage(response.answer, response.containsHTML, response.analysisSteps, response.isLearned);
+                }
+                
                 userInput.value = '';
                 lastSpeechResult = '';
                 updateSendButton();
@@ -2004,6 +2182,19 @@
                 if (confirm("Weet je zeker dat je ALLES uit het geheugen wilt verwijderen? Dit kan niet ongedaan worden gemaakt!")) {
                     localStorage.clear();
                     location.reload();
+                }
+            });
+            
+            // Klik op afbeelding om groot/klein te maken
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('generated-image')) {
+                    if (e.target.style.maxHeight === 'none') {
+                        e.target.style.maxHeight = '400px';
+                        e.target.style.cursor = 'pointer';
+                    } else {
+                        e.target.style.maxHeight = 'none';
+                        e.target.style.cursor = 'default';
+                    }
                 }
             });
         };
